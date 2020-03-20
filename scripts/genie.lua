@@ -1,5 +1,5 @@
 --
--- Copyright 2010-2019 Branimir Karadzic. All rights reserved.
+-- Copyright 2010-2020 Branimir Karadzic. All rights reserved.
 -- License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
 --
 
@@ -69,7 +69,8 @@ newaction {
 		do
 			local csgen = require "bindings-cs"
 			csgen.write(csgen.gen(), "../bindings/cs/bgfx.cs")
-			
+			csgen.write(csgen.gen_dllname(), "../bindings/cs/bgfx_dllname.cs")
+
 			local dgen = require "bindings-d"
 			dgen.write(dgen.gen_types(), "../bindings/d/types.d")
 			dgen.write(dgen.gen_funcs(), "../bindings/d/funcs.d")
@@ -306,20 +307,24 @@ function exampleProjectDefaults()
 
 	configuration { "asmjs" }
 		kind "ConsoleApp"
-		targetextension ".bc"
 
-	configuration { "linux-* or freebsd", "not linux-steamlink" }
+		linkoptions {
+			"-s TOTAL_MEMORY=256MB",
+			"--memory-init-file 1",
+		}
+
+		removeflags {
+			"OptimizeSpeed",
+		}
+
+		flags {
+			"Optimize"
+		}
+
+	configuration { "linux-* or freebsd" }
 		links {
 			"X11",
 			"GL",
-			"pthread",
-		}
-
-	configuration { "linux-steamlink" }
-		links {
-			"EGL",
-			"GLESv2",
-			"SDL2",
 			"pthread",
 		}
 

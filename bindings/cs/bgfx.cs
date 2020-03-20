@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2020 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx/blob/master/LICENSE
  */
 
@@ -527,6 +527,45 @@ public static partial class bgfx
 		DiscardStencil         = 0x1000,
 		DiscardColorMask       = 0x07f8,
 		DiscardMask            = 0x1ff8,
+	}
+	
+	[Flags]
+	public enum DiscardFlags : uint
+	{
+		/// <summary>
+		/// Discard nothing
+		/// </summary>
+		None                   = 0x00000000,
+	
+		/// <summary>
+		/// Discard only Index Buffer
+		/// </summary>
+		IndexBuffer            = 0x00000001,
+	
+		/// <summary>
+		/// Discard only Vertex Streams
+		/// </summary>
+		VertexStreams          = 0x00000002,
+	
+		/// <summary>
+		/// Discard only texture samplers
+		/// </summary>
+		TextureSamplers        = 0x00000004,
+	
+		/// <summary>
+		/// Discard only Compute shader related state
+		/// </summary>
+		Compute                = 0x00000008,
+	
+		/// <summary>
+		/// Discard only state
+		/// </summary>
+		State                  = 0x00000010,
+	
+		/// <summary>
+		/// Discard every rendering states
+		/// </summary>
+		All                    = 0x0000001f,
 	}
 	
 	[Flags]
@@ -2123,29 +2162,65 @@ public static partial class bgfx
 	{
 	}
 	
-	public struct DynamicIndexBufferHandle{ public ushort idx; }
+	public struct DynamicIndexBufferHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct DynamicVertexBufferHandle{ public ushort idx; }
+	public struct DynamicVertexBufferHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct FrameBufferHandle{ public ushort idx; }
+	public struct FrameBufferHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct IndexBufferHandle{ public ushort idx; }
+	public struct IndexBufferHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct IndirectBufferHandle{ public ushort idx; }
+	public struct IndirectBufferHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct OcclusionQueryHandle{ public ushort idx; }
+	public struct OcclusionQueryHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct ProgramHandle{ public ushort idx; }
+	public struct ProgramHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct ShaderHandle{ public ushort idx; }
+	public struct ShaderHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct TextureHandle{ public ushort idx; }
+	public struct TextureHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct UniformHandle{ public ushort idx; }
+	public struct UniformHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct VertexBufferHandle{ public ushort idx; }
+	public struct VertexBufferHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
-	public struct VertexLayoutHandle{ public ushort idx; }
+	public struct VertexLayoutHandle {
+	    public ushort idx;
+	    public bool Valid => idx != UInt16.MaxValue;
+	}
 	
 
 	/// <summary>
@@ -3658,10 +3733,10 @@ public static partial class bgfx
 	/// <param name="_id">View id.</param>
 	/// <param name="_program">Program.</param>
 	/// <param name="_depth">Depth for sorting.</param>
-	/// <param name="_preserveState">Preserve internal draw state for next draw call submit.</param>
+	/// <param name="_flags">Which states to discard for next draw. See BGFX_DISCARD_</param>
 	///
 	[DllImport(DllName, EntryPoint="bgfx_encoder_submit", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void encoder_submit(Encoder* _this, ushort _id, ProgramHandle _program, uint _depth, bool _preserveState);
+	public static extern unsafe void encoder_submit(Encoder* _this, ushort _id, ProgramHandle _program, uint _depth, byte _flags);
 	
 	/// <summary>
 	/// Submit primitive with occlusion query for rendering.
@@ -3671,10 +3746,10 @@ public static partial class bgfx
 	/// <param name="_program">Program.</param>
 	/// <param name="_occlusionQuery">Occlusion query.</param>
 	/// <param name="_depth">Depth for sorting.</param>
-	/// <param name="_preserveState">Preserve internal draw state for next draw call submit.</param>
+	/// <param name="_flags">Which states to discard for next draw. See BGFX_DISCARD_</param>
 	///
 	[DllImport(DllName, EntryPoint="bgfx_encoder_submit_occlusion_query", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void encoder_submit_occlusion_query(Encoder* _this, ushort _id, ProgramHandle _program, OcclusionQueryHandle _occlusionQuery, uint _depth, bool _preserveState);
+	public static extern unsafe void encoder_submit_occlusion_query(Encoder* _this, ushort _id, ProgramHandle _program, OcclusionQueryHandle _occlusionQuery, uint _depth, byte _flags);
 	
 	/// <summary>
 	/// Submit primitive for rendering with index and instance data info from
@@ -3687,10 +3762,10 @@ public static partial class bgfx
 	/// <param name="_start">First element in indirect buffer.</param>
 	/// <param name="_num">Number of dispatches.</param>
 	/// <param name="_depth">Depth for sorting.</param>
-	/// <param name="_preserveState">Preserve internal draw state for next draw call submit.</param>
+	/// <param name="_flags">Which states to discard for next draw. See BGFX_DISCARD_</param>
 	///
 	[DllImport(DllName, EntryPoint="bgfx_encoder_submit_indirect", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void encoder_submit_indirect(Encoder* _this, ushort _id, ProgramHandle _program, IndirectBufferHandle _indirectHandle, ushort _start, ushort _num, uint _depth, bool _preserveState);
+	public static extern unsafe void encoder_submit_indirect(Encoder* _this, ushort _id, ProgramHandle _program, IndirectBufferHandle _indirectHandle, ushort _start, ushort _num, uint _depth, byte _flags);
 	
 	/// <summary>
 	/// Set compute index buffer.
@@ -3787,11 +3862,13 @@ public static partial class bgfx
 	public static extern unsafe void encoder_dispatch_indirect(Encoder* _this, ushort _id, ProgramHandle _program, IndirectBufferHandle _indirectHandle, ushort _start, ushort _num);
 	
 	/// <summary>
-	/// Discard all previously set state for draw or compute call.
+	/// Discard previously set state for draw or compute call.
 	/// </summary>
 	///
+	/// <param name="_flags">Draw/compute states to discard.</param>
+	///
 	[DllImport(DllName, EntryPoint="bgfx_encoder_discard", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void encoder_discard(Encoder* _this);
+	public static extern unsafe void encoder_discard(Encoder* _this, byte _flags);
 	
 	/// <summary>
 	/// Blit 2D texture region between two 2D textures.
@@ -4171,10 +4248,10 @@ public static partial class bgfx
 	/// <param name="_id">View id.</param>
 	/// <param name="_program">Program.</param>
 	/// <param name="_depth">Depth for sorting.</param>
-	/// <param name="_preserveState">Preserve internal draw state for next draw call submit.</param>
+	/// <param name="_flags">Which states to discard for next draw. See BGFX_DISCARD_</param>
 	///
 	[DllImport(DllName, EntryPoint="bgfx_submit", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void submit(ushort _id, ProgramHandle _program, uint _depth, bool _preserveState);
+	public static extern unsafe void submit(ushort _id, ProgramHandle _program, uint _depth, byte _flags);
 	
 	/// <summary>
 	/// Submit primitive with occlusion query for rendering.
@@ -4184,10 +4261,10 @@ public static partial class bgfx
 	/// <param name="_program">Program.</param>
 	/// <param name="_occlusionQuery">Occlusion query.</param>
 	/// <param name="_depth">Depth for sorting.</param>
-	/// <param name="_preserveState">Preserve internal draw state for next draw call submit.</param>
+	/// <param name="_flags">Which states to discard for next draw. See BGFX_DISCARD_</param>
 	///
 	[DllImport(DllName, EntryPoint="bgfx_submit_occlusion_query", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void submit_occlusion_query(ushort _id, ProgramHandle _program, OcclusionQueryHandle _occlusionQuery, uint _depth, bool _preserveState);
+	public static extern unsafe void submit_occlusion_query(ushort _id, ProgramHandle _program, OcclusionQueryHandle _occlusionQuery, uint _depth, byte _flags);
 	
 	/// <summary>
 	/// Submit primitive for rendering with index and instance data info from
@@ -4200,10 +4277,10 @@ public static partial class bgfx
 	/// <param name="_start">First element in indirect buffer.</param>
 	/// <param name="_num">Number of dispatches.</param>
 	/// <param name="_depth">Depth for sorting.</param>
-	/// <param name="_preserveState">Preserve internal draw state for next draw call submit.</param>
+	/// <param name="_flags">Which states to discard for next draw. See BGFX_DISCARD_</param>
 	///
 	[DllImport(DllName, EntryPoint="bgfx_submit_indirect", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void submit_indirect(ushort _id, ProgramHandle _program, IndirectBufferHandle _indirectHandle, ushort _start, ushort _num, uint _depth, bool _preserveState);
+	public static extern unsafe void submit_indirect(ushort _id, ProgramHandle _program, IndirectBufferHandle _indirectHandle, ushort _start, ushort _num, uint _depth, byte _flags);
 	
 	/// <summary>
 	/// Set compute index buffer.
@@ -4300,11 +4377,13 @@ public static partial class bgfx
 	public static extern unsafe void dispatch_indirect(ushort _id, ProgramHandle _program, IndirectBufferHandle _indirectHandle, ushort _start, ushort _num);
 	
 	/// <summary>
-	/// Discard all previously set state for draw or compute call.
+	/// Discard previously set state for draw or compute call.
 	/// </summary>
 	///
+	/// <param name="_flags">Draw/compute states to discard.</param>
+	///
 	[DllImport(DllName, EntryPoint="bgfx_discard", CallingConvention = CallingConvention.Cdecl)]
-	public static extern unsafe void discard();
+	public static extern unsafe void discard(byte _flags);
 	
 	/// <summary>
 	/// Blit 2D texture region between two 2D textures.
@@ -4330,13 +4409,5 @@ public static partial class bgfx
 	[DllImport(DllName, EntryPoint="bgfx_blit", CallingConvention = CallingConvention.Cdecl)]
 	public static extern unsafe void blit(ushort _id, TextureHandle _dst, byte _dstMip, ushort _dstX, ushort _dstY, ushort _dstZ, TextureHandle _src, byte _srcMip, ushort _srcX, ushort _srcY, ushort _srcZ, ushort _width, ushort _height, ushort _depth);
 	
-
-#if !BGFX_CSHARP_CUSTOM_DLLNAME
-#if DEBUG
-	const string DllName = "bgfx_debug.dll";
-#else
-	const string DllName = "bgfx.dll";
-#endif
-#endif
 }
 }

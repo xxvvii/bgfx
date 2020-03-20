@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2020 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -264,7 +264,7 @@ namespace bgfx { namespace gl
 		{ GL_RGBA32UI,                                 GL_ZERO,                                       GL_RGBA,                                     GL_RGBA,                                     GL_UNSIGNED_INT,                 false }, // RGBA32U
 		{ GL_RGBA32F,                                  GL_ZERO,                                       GL_RGBA,                                     GL_RGBA,                                     GL_FLOAT,                        false }, // RGBA32F
 		{ GL_RGB565,                                   GL_ZERO,                                       GL_RGB,                                      GL_RGB,                                      GL_UNSIGNED_SHORT_5_6_5,         false }, // R5G6B5
-		{ GL_RGBA4,                                    GL_ZERO,                                       GL_RGBA,                                     GL_RGBA,                                     GL_UNSIGNED_SHORT_4_4_4_4_REV,   false }, // RGBA4
+		{ GL_RGBA4,                                    GL_ZERO,                                       GL_BGRA,                                     GL_BGRA,                                     GL_UNSIGNED_SHORT_4_4_4_4_REV,   false }, // RGBA4
 		{ GL_RGB5_A1,                                  GL_ZERO,                                       GL_BGRA,                                     GL_BGRA,                                     GL_UNSIGNED_SHORT_1_5_5_5_REV,   false }, // RGB5A1
 		{ GL_RGB10_A2,                                 GL_ZERO,                                       GL_RGBA,                                     GL_RGBA,                                     GL_UNSIGNED_INT_2_10_10_10_REV,  false }, // RGB10A2
 		{ GL_R11F_G11F_B10F,                           GL_ZERO,                                       GL_RGB,                                      GL_RGB,                                      GL_UNSIGNED_INT_10F_11F_11F_REV, false }, // RG11B10F
@@ -1514,8 +1514,6 @@ namespace bgfx { namespace gl
 			return false;
 		}
 
-BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
-
 		const GLenum target = _array
 			? GL_TEXTURE_2D_ARRAY
 			: GL_TEXTURE_2D
@@ -1815,6 +1813,16 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 			m_version     = getGLString(GL_VERSION);
 			m_glslVersion = getGLString(GL_SHADING_LANGUAGE_VERSION);
 
+			int glVersion;
+			int majorGlVersion = 0;
+			int minorGlVersion = 0;
+			const char *version = m_version;
+			while(*version && (*version < '0' || *version > '9'))
+				++version;
+			majorGlVersion = atoi(version);
+			minorGlVersion = atoi(version + 2);
+			glVersion = majorGlVersion*10 + minorGlVersion;
+
 			for (uint32_t ii = 0; ii < BX_COUNTOF(s_vendorIds); ++ii)
 			{
 				const VendorId& vendorId = s_vendorIds[ii];
@@ -2050,8 +2058,6 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				if (BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGLES) )
 				{
-					setTextureFormat(TextureFormat::D32, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
-
 					if (BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGLES < 30) )
 					{
 						setTextureFormat(TextureFormat::RGBA16F, GL_RGBA, GL_RGBA, GL_HALF_FLOAT);
@@ -2085,12 +2091,30 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							s_textureFilter[TextureFormat::RG32F]   = linear32F;
 							s_textureFilter[TextureFormat::RGBA32F] = linear32F;
 						}
+					}
 
-						if (BX_ENABLED(BX_PLATFORM_EMSCRIPTEN))
-						{
-							setTextureFormat(TextureFormat::D16,   GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT);
-							setTextureFormat(TextureFormat::D24S8, GL_DEPTH_STENCIL,   GL_DEPTH_STENCIL,   GL_UNSIGNED_INT_24_8);
-						}
+					if (BX_ENABLED(BX_PLATFORM_EMSCRIPTEN)
+						&& (s_extension[Extension::WEBGL_depth_texture].m_supported
+						|| s_extension[Extension::MOZ_WEBGL_depth_texture].m_supported
+						|| s_extension[Extension::WEBKIT_WEBGL_depth_texture].m_supported))
+					{
+						setTextureFormat(TextureFormat::D16,   GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT);
+						setTextureFormat(TextureFormat::D24,   GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT); // N.b. OpenGL ES does not guarantee that there are 24 bits available here, could be 16. See https://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/
+						setTextureFormat(TextureFormat::D32,   GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT); // N.b. same as above.
+						setTextureFormat(TextureFormat::D24S8, GL_DEPTH_STENCIL,   GL_DEPTH_STENCIL,   GL_UNSIGNED_INT_24_8);
+					}
+
+					// OpenGL ES 3.0 depth formats.
+					if (glVersion >= 30)
+					{
+						setTextureFormat(TextureFormat::D16,   GL_DEPTH_COMPONENT16,  GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT);
+						setTextureFormat(TextureFormat::D24,   GL_DEPTH_COMPONENT24,  GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+						setTextureFormat(TextureFormat::D32,   GL_DEPTH_COMPONENT24,  GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+						setTextureFormat(TextureFormat::D24S8, GL_DEPTH24_STENCIL8,   GL_DEPTH_STENCIL,   GL_UNSIGNED_INT_24_8);
+						setTextureFormat(TextureFormat::D16F,  GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT); // GLES 3.0 does not have D16F, overshoot to D32F
+						setTextureFormat(TextureFormat::D24F,  GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT); // GLES 3.0 does not have D24F, overshoot to D32F
+						setTextureFormat(TextureFormat::D32F,  GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+						setTextureFormat(TextureFormat::D0S8,  GL_STENCIL_INDEX8, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE); // Only works as renderbuffer, not as texture
 					}
 				}
 
@@ -2363,7 +2387,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					;
 
 				g_caps.limits.maxTextureSize     = uint16_t(glGet(GL_MAX_TEXTURE_SIZE) );
-				g_caps.limits.maxTextureLayers   = uint16_t(bx::max(glGet(GL_MAX_ARRAY_TEXTURE_LAYERS), 1) );
+				g_caps.limits.maxTextureLayers   = BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGL >= 31) || BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGLES >= 31) || s_extension[Extension::EXT_texture_array].m_supported ? uint16_t(bx::max(glGet(GL_MAX_ARRAY_TEXTURE_LAYERS), 1) ) : 1;
 				g_caps.limits.maxComputeBindings = computeSupport ? BGFX_MAX_COMPUTE_BINDINGS : 0;
 				g_caps.limits.maxVertexStreams   = BGFX_CONFIG_MAX_VERTEX_STREAMS;
 
@@ -2573,7 +2597,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					glInsertEventMarker = stubInsertEventMarker;
 				}
 
-				m_maxLabelLen = uint16_t(glGet(GL_MAX_LABEL_LENGTH) );
+				m_maxLabelLen = BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGLES >= 32) || BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGL >= 43) || s_extension[Extension::KHR_debug].m_supported ? uint16_t(glGet(GL_MAX_LABEL_LENGTH) ) : 0;
 
 				setGraphicsDebuggerPresent(s_extension[Extension::EXT_debug_tool].m_supported);
 
@@ -5377,7 +5401,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 		if (0 != m_id)
 		{
-			if (GL_COMPUTE_SHADER != m_type)
+			if (GL_COMPUTE_SHADER != m_type
+			&&  0 != bx::strCmp(code, "#version 430", 12) ) // #2000
 			{
 				int32_t tempLen = code.getLength() + (4<<10);
 				char* temp = (char*)alloca(tempLen);
@@ -5661,6 +5686,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 						else
 						{
 							bx::write(&writer, "#define texture2DArrayLodEXT texture2DArrayLod\n");
+							bx::write(&writer, "#define textureArray texture\n");
 						}
 					}
 
@@ -5758,7 +5784,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 					{
 						bx::write(&writer, code);
 					}
-					
+
 					bx::write(&writer, '\0');
 				}
 				else if (BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGL   >= 31)
@@ -5875,7 +5901,7 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 				code.set(temp);
 			}
-			else // GL_COMPUTE_SHADER
+			else if (GL_COMPUTE_SHADER == m_type)
 			{
 				int32_t codeLen = (int32_t)bx::strLen(code);
 				int32_t tempLen = codeLen + (4<<10);
@@ -7196,6 +7222,8 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 
 					{
 						bool diffStreamHandles = false;
+						bool diffIndexBuffer = false;
+
 						for (uint32_t idx = 0, streamMask = draw.m_streamMask
 							; 0 != streamMask
 							; streamMask >>= 1, idx += 1
@@ -7253,6 +7281,14 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 							{
 								GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0) );
 							}
+
+							diffIndexBuffer = true;
+						}
+
+						if (currentState.m_startIndex != draw.m_startIndex)
+						{
+							currentState.m_startIndex = draw.m_startIndex;
+							diffIndexBuffer = true;
 						}
 
 						if (0 != currentState.m_streamMask)
@@ -7309,7 +7345,10 @@ BX_TRACE("%d, %d, %d, %s", _array, _srgb, _mipAutogen, getName(_format) );
 								}
 
 								program.bindAttributesEnd();
+							}
 
+							if (bindAttribs || diffStartVertex || diffIndexBuffer)
+							{
 								if (isValid(draw.m_instanceDataBuffer) )
 								{
 									GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffers[draw.m_instanceDataBuffer.idx].m_id) );
